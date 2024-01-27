@@ -100,7 +100,7 @@ func main() {
 
 		xml.Unmarshal(fileData, &runData)
 
-		err = os.WriteFile("README.md", []byte("##"+runData.GameName), 0644)
+		err = os.WriteFile("README.md", []byte("## "+runData.GameName), 0644)
 		if err != nil {
 			log.Fatal(err)
 		}
