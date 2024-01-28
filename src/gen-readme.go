@@ -49,7 +49,7 @@ type XMLRun struct {
 			Icon       string `xml:"Icon"`
 			SplitTimes struct {
 				//Text      string `xml:",chardata"`
-				SplitTime struct {
+				SplitTime []struct {
 					//Text     string `xml:",chardata"`
 					Name     string `xml:"name,attr"`
 					RealTime string `xml:"RealTime"`
@@ -80,6 +80,32 @@ type XMLRun struct {
 	} `xml:"AutoSplitterSettings"`
 }
 
+func (run *XMLRun) getSegmentNames() []string {
+	var names []string
+	for _, segment := range run.Segments.Segment {
+		names = append(names, segment.Name)
+	}
+	return names
+}
+
+func (run *XMLRun) getPBTimes() []string {
+	var times []string
+	for _, segment := range run.Segments.Segment {
+		for _, splittime := range segment.SplitTimes.SplitTime {
+			if splittime.Name == "Personal Best" {
+				times = append(times, splittime.RealTime)
+				//else the config says gametime
+			}
+		}
+	}
+	return times
+}
+
+/*
+	TODO:
+		check game names and combine categories into one section
+*/
+
 func main() {
 	/*
 		loop through splits folder
@@ -91,8 +117,14 @@ func main() {
 		log.Fatal(err)
 	}
 
+	readMe, err := os.OpenFile("readme.md", os.O_APPEND|os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	for _, file := range dirent {
 		runData := &XMLRun{}
+
 		fileData, err := os.ReadFile("splits/" + file.Name())
 		if err != nil {
 			log.Fatal(err)
@@ -100,9 +132,13 @@ func main() {
 
 		xml.Unmarshal(fileData, &runData)
 
-		err = os.WriteFile("README.md", []byte("## "+runData.GameName), 0644)
-		if err != nil {
-			log.Fatal(err)
+		readMe.WriteString("## " + runData.GameName + "\n")
+		readMe.WriteString("### " + runData.CategoryName + " Attempts: " + runData.AttemptCount + "\n")
+		names := runData.getSegmentNames()
+		times := runData.getPBTimes()
+
+		for i, n := range names {
+			readMe.WriteString("- " + n + " - " + times[i] + "\n")
 		}
 	}
 
